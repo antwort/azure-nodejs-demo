@@ -145,26 +145,25 @@ stages:
 
   - job: deploy_master
     displayName: 'Deploy (master)'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
     steps:
       - template: steps/deploy-app-service.yml@templates
         parameters:
           ARMConnectionName: $(lib-var-arm-connection)
           dockerImage: $(image-name-with-registry):$(image-tag)
           appName: $(app-services-name)-dev # with `-dev` suffix
-          condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
 
   - job: deploy_release
     displayName: 'Deploy (release)'
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/release'), ne(variables['Build.Reason'], 'Schedule'))
     steps:
       - template: steps/set-custom-variable.yml@templates
         parameters:
           variableName: image-tag
           command: 'npm run --silent my-version'
-          condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/release'), ne(variables['Build.Reason'], 'Schedule'))
 
       - template: steps/deploy-app-service.yml@templates
         parameters:
           ARMConnectionName: $(lib-var-arm-connection)
           appName: $(app-services-name)
           dockerImage: $(image-name-with-registry):$(image-tag)
-          condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/release'), ne(variables['Build.Reason'], 'Schedule'))
