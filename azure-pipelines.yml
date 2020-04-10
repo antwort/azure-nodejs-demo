@@ -62,35 +62,35 @@ stages:
 
 # --- Stage: Tests ---
 
-- stage: Tests
-  displayName: 'Test (Node.js)'
-  jobs:
-    - job: Audit
-      displayName: Audit Dependencies
-      pool:
-        vmImage: 'ubuntu-latest'
-      steps:
-      - script: npm audit
-        displayName: Audit (Dev)
-        continueOnError: true
-      - script: npm audit --production --audit-level=high
-        displayName: Audit (Prod)
+# - stage: Tests
+#   displayName: 'Test (Node.js)'
+#   jobs:
+#     - job: Audit
+#       displayName: Audit Dependencies
+#       pool:
+#         vmImage: 'ubuntu-latest'
+#       steps:
+#       - script: npm audit
+#         displayName: Audit (Dev)
+#         continueOnError: true
+#       - script: npm audit --production --audit-level=high
+#         displayName: Audit (Prod)
 
-    - job: Linter
-      displayName: Lint Code
-      pool:
-        vmImage: 'ubuntu-latest'
-      steps:
-      - script: npm ci && npm run lint
-        displayName: Lint Code
+#     - job: Linter
+#       displayName: Lint Code
+#       pool:
+#         vmImage: 'ubuntu-latest'
+#       steps:
+#       - script: npm ci && npm run lint
+#         displayName: Lint Code
 
-    - job: UnitTests
-      displayName: Unit Tests
-      pool:
-        vmImage: 'ubuntu-latest'
-      steps:
-      - script: npm ci && npm run test
-        displayName: Run Tests
+#     - job: UnitTests
+#       displayName: Unit Tests
+#       pool:
+#         vmImage: 'ubuntu-latest'
+#       steps:
+#       - script: npm ci && npm run test
+#         displayName: Run Tests
 
 
 # --- Stage: Build and Push Docker image ---
