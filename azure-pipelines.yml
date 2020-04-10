@@ -109,8 +109,8 @@ stages:
 
       steps:
       - template: steps/set-custom-variable.yml@templates
-        condition: ${{ variables['is-release'] }}
         parameters:
+          condition: ${{ variables['is-release'] }}
           variableName: image-tag
           command: 'npm run --silent my-version'
 
@@ -122,8 +122,8 @@ stages:
             $(image-tag)
 
       - template: steps/lock-acr-image.yml@templates
-        condition: ${{ variables['is-release'] }}
         parameters:
+          condition: ${{ variables['is-release'] }}
           azureArmConnection: $(lib-var-az-acr-connection)
           acrRegistryName: $(registry-acr-name)
           imageName: $(image-name)
