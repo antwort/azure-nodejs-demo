@@ -113,14 +113,14 @@ stages:
           registryConnectionName: $(registry-service-connection)
           imageName: $(image-name)
           tagsAsMultilineString: |
-            'v0'
+            "v0"
 
       - template: steps/lock-acr-image.yml@templates
         parameters:
           azureArmConnection: $(lib-var-arm-connection)
           acrRegistryName: $(registry-acr-name)
           imageName: $(image-name)
-          imageTag: 'v0'
+          imageTag: "v0"
           condition: succeeded() # force for test
       # lock release images
       # - task: AzureCLI@2
