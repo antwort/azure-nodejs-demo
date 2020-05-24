@@ -120,6 +120,7 @@ stages:
 
 - stage: BuildAndDeploy
   displayName: 'Build and Deploy'
+  condition: true
   jobs:
   - job: build_and_publish
     steps:
