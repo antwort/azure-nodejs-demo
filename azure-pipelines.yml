@@ -128,7 +128,8 @@ stages:
         displayName: 'Use Dev storage-container?'
         # condition: ${{ variables['is-dev'] }}
 
-      - script: echo $(storage-container)
+      - script: echo 'variable `storage-container` is set to $(${{ storage-container }})'
+        displayName: 'Which container?'
 
       # - template: steps/set-custom-variable.yml@templates
       #   parameters:
