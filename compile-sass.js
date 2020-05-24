@@ -6,9 +6,9 @@ const sass = require('node-sass')
 
 const appVersion = process.env.npm_package_version
 
-const sourceFile = path.join(__dirname, 'css/styles.scss')
-const outFile = path.join(__dirname, `css/styles.css`)
-const outFileVersioned = path.join(__dirname, `css/styles-${appVersion}.css`)
+const sourceFile = path.join(__dirname, 'assets/css/styles.scss')
+const outFile = path.join(__dirname, `assets/css/styles.css`)
+const outFileVersioned = path.join(__dirname, `assets/css/styles-${appVersion}.css`)
 const opts = {
 	file: sourceFile,
 	outputStyle: 'compressed'
