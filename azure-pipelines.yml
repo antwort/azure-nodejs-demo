@@ -133,13 +133,13 @@ stages:
       #   displayName: 'Use Dev storage-container?'
         # condition: ${{ variables['is-dev'] }}
 
-      - bash: echo "Using $[storage-container]"
+      - bash: echo "Using $(storage-container)"
 
       - bash: echo "##vso[task.setvariable variable=storage-container]my-container"
         condition: ${{ variables['is-debug'] }}
 
       - bash: |
-          echo 'variable storage-container is set to $[storage-container]'
+          echo 'variable storage-container is set to $(storage-container)'
         displayName: 'Which container?'
 
       # - template: steps/set-custom-variable.yml@templates
