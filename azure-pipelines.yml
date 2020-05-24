@@ -144,6 +144,19 @@ stages:
             npm run compile-sass
           displayName: 'Compile Sass to CSS'
 
+        - task: AzureCLI@2
+          displayName: az storage blob upload-batch
+          inputs:
+            azureSubscription: $(lib-var-arm-connection)
+            scriptType: shell
+            scriptLocation: inlineScript
+            inlineScript: |
+              az --version
+              az storage blob upload-batch \
+                --account-name $(storage-account-name) \
+                --source ./assets \
+                --destination nodejs-dev
+
         # Does not work for Linux 🙄
         # - task: AzureFileCopy@4
         #   displayName: 'Copy Assets to Azure Storage Account'
