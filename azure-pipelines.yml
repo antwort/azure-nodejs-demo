@@ -133,10 +133,10 @@ stages:
       #   displayName: 'Use Dev storage-container?'
         # condition: ${{ variables['is-dev'] }}
 
-      # - bash: echo 'Using $(storage-container)']
-      #   displayName: 'Default Value'
+      - bash: echo 'Using $(storage-container)']
+        displayName: 'Default Value'
 
-      - bash: echo "##vso[task.setvariable variable=storage-container]$(${{ variables['storage-container-dev'] }})"
+      - bash: echo "##vso[task.setvariable variable=storage-container]${{ variables['storage-container-dev'] }}"
         condition: ${{ variables['is-debug'] }}
 
       - bash: |
