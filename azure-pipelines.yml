@@ -157,18 +157,6 @@ stages:
                 --source ./assets \
                 --destination nodejs-dev
 
-        # Does not work for Linux 🙄
-        # - task: AzureFileCopy@4
-        #   displayName: 'Copy Assets to Azure Storage Account'
-        #   inputs:
-        #     sourcePath: './assets'
-        #     azureSubscription: $(lib-var-arm-connection)
-        #     destination: 'AzureBlob'
-        #     storage: $(storage-acount-name)
-        #     containerName: 'nodejs-dev'
-        #     copyFilesInParallel: true
-        #     cleanTargetBeforeCopy: false
-
 # --- Stage: deploy to Azure App Services ---
 
 # - stage: DeployImage
