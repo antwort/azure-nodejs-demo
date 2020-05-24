@@ -38,36 +38,34 @@ resources:
 variables:
   - group: azure-demos-config # set in DevOps Library
 
-  - name: registry-namespace
-    value: demos
+  # Fixed Pipeline Values
+  - name: storage-account-name
+    value: 'demoassetpipeline'
 
-  - name: app-name
-    value: azure-nodejs-demo
+  - name: image-name
+    value: demos/azure-nodejs-demo # acr task expected format
 
+  - name: image-name-with-registry
+    value: onazureio.azurecr.io/$(image-name) # app service task expected format
+
+  # Deployment Values - Defaults
   - name: web-app-name
     value: azure-nodejs-demo-dev
 
-  - name: web-app-name-prod
-    value: azure-nodejs-demo
-
-  - name: image-name
-    value: $(registry-namespace)/$(app-name)
-
-  - name: image-name-with-registry
-    value: $(registry-host)/$(image-name) # e.g. registry.azurecr.io/demos/app-name
-
   - name: image-tag
-    value: 'dev' # default
+    value: 'dev'
 
   - name: storage-container
-    value: 'nodejs-dev' # default
+    value: 'nodejs-dev'
+
+  # Deployment Values - Production
+  - name: web-app-name-prod
+    value: azure-nodejs-demo
 
   - name: storage-container-prod
     value: 'nodejs'
 
-  - name: storage-account-name
-    value: 'demoassetpipeline'
-
+  # Pipeline Conditions
   - name: is-dev
     value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/master') }}
 
@@ -144,15 +142,9 @@ stages:
           echo '[run-time] image tag: $(image-tag)'
           echo '[run-time] storage account: $(storage-container)'
           echo '[run-time] web app name: $(web-app-name)'
-        displayName: 'Use prod values?'
+        displayName: 'Use production values'
         condition: ${{ variables['is-debug'] }}
 
-      # # sanity check
-      # - script: |
-      #     echo '[run-time] image tag: $(image-tag)'
-      #     echo '[run-time] storage account: $(storage-container)'
-      #     echo '[run-time] web app name: $(web-app-name)'
-      #   displayName: 'Debug: run-time values'
 
       # 2) COMPILE SASS
       - script: |
