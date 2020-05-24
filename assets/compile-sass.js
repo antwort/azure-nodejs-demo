@@ -6,8 +6,9 @@ const sass = require('node-sass')
 
 const appVersion = process.env.npm_package_version
 
-const sourceFile = path.join(__dirname, 'css/styles.css')
-const outFile = path.join(__dirname, `css/styles-${appVersion}.css`)
+const sourceFile = path.join(__dirname, 'css/styles.scss')
+const outFile = path.join(__dirname, `css/styles.css`)
+const outFileVersioned = path.join(__dirname, `css/styles-${appVersion}.css`)
 const opts = {
 	file: sourceFile,
 	outputStyle: 'compressed'
@@ -15,10 +16,21 @@ const opts = {
 
 sass.render(opts, function (err, result) {
 	if (result) {
-		console.log('COMPILED CSS')
-		console.log('-------------')
-		console.log(result.css.toString())
-		fs.writeFileSync(outFile, result.css.toString())
+		const css = result.css.toString()
+		console.log('[Compiled CSS]')
+		console.log(css)
+
+		// Always write styles.css
+		fs.writeFileSync(outFile, css)
+		console.log('[Created] styles.css')
+
+		// Only write versioned file if doesn't exist
+		try {
+			fs.writeFileSync(outFileVersioned, css, { flag: 'wx' })
+			console.log(`[Created] styles-${appVersion}.css`)
+		} catch (e) {
+			console.log(`[Skipped] styles-${appVersion}.css already exists`)
+		}
 		process.exit(0)
 	}
 
