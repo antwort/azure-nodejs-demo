@@ -53,23 +53,23 @@ variables:
   - name: image-name-with-registry
     value: $(registry-host)/$(image-name) # e.g. registry.azurecr.io/demos/app-name
 
-  - name: image-tag
-    value: 'dev' # default
-
   - name: storage-account-name
     value: 'demoassetpipeline'
 
-  - name: storage-container-dev
-    value: 'nodejs-dev'
+  - name: image-tag
+    value: 'dev' # default
 
   - name: storage-container
-    value: 'nodejs'
+    value: 'nodejs-dev' # default
 
   - name: is-dev
     value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/master') }}
 
   - name: is-release
     value: ${{ and(eq(variables['Build.SourceBranch'], 'refs/heads/release'), ne(variables['Build.Reason'], 'Schedule')) }}
+
+  - name: is-deployment
+    value: ${{ or(variables['is-dev'], variables['is-release']) }}
 
 
 # Stages
@@ -79,113 +79,114 @@ stages:
 
 # --- Stage: Tests ---
 
-- stage: Tests
-  displayName: 'Test (Node.js)'
-  jobs:
-    - job: Audit
-      displayName: Audit Dependencies
-      steps:
-      - script: npm audit --audit-level=moderate
-        displayName: Audit (Dev)
-        continueOnError: true
-      - script: npm audit --production --audit-level=high
-        displayName: Audit (Prod)
+# - stage: Tests
+#   displayName: 'Test (Node.js)'
+#   jobs:
+#     - job: Audit
+#       displayName: Audit Dependencies
+#       steps:
+#       - script: npm audit --audit-level=moderate
+#         displayName: Audit (Dev)
+#         continueOnError: true
+#       - script: npm audit --production --audit-level=high
+#         displayName: Audit (Prod)
 
-    - job: Linter
-      displayName: Lint Code
-      steps:
-      - script: npm ci && npm run lint
-        displayName: Lint Code
+#     - job: Linter
+#       displayName: Lint Code
+#       steps:
+#       - script: npm ci && npm run lint
+#         displayName: Lint Code
 
-    - job: UnitTests
-      displayName: Unit Tests
-      steps:
-      - script: npm ci && npm run test
-        displayName: Run Tests
+#     - job: UnitTests
+#       displayName: Unit Tests
+#       steps:
+#       - script: npm ci && npm run test
+#         displayName: Run Tests
 
 
 # --- Stage: Build and Push Docker image ---
 
-- stage: BuildImage
-  displayName: 'Build (Docker)'
+- stage: BuildAndDeploy
+  displayName: 'Build and Deploy'
   jobs:
     - job: build_and_push
-      displayName: 'Build and Push Image'
+      displayName: 'Build and Deploy'
 
       steps:
-      - template: steps/set-custom-variable.yml@templates
-        parameters:
-          condition: ${{ variables['is-release'] }}
-          variableName: image-tag
-          command: 'npm run --silent my-version'
+        - script: echo $(is-deployment)
+      # - template: steps/set-custom-variable.yml@templates
+      #   parameters:
+      #     condition: ${{ variables['is-release'] }}
+      #     variableName: image-tag
+      #     command: 'npm run --silent my-version'
 
-      - template: steps/docker-build-push.yml@templates
-        parameters:
-          registryConnectionName: $(registry-service-connection)
-          imageName: $(image-name)
-          tagsAsMultilineString: |
-            $(image-tag)
+      # - template: steps/docker-build-push.yml@templates
+      #   parameters:
+      #     registryConnectionName: $(registry-service-connection)
+      #     imageName: $(image-name)
+      #     tagsAsMultilineString: |
+      #       $(image-tag)
 
-      - template: steps/lock-acr-image.yml@templates
-        parameters:
-          condition: ${{ variables['is-release'] }}
-          azureArmConnection: $(lib-var-az-acr-connection)
-          acrRegistryName: $(registry-acr-name)
-          imageName: $(image-name)
-          imageTag: $(image-tag)
+      # - template: steps/lock-acr-image.yml@templates
+      #   parameters:
+      #     condition: ${{ variables['is-release'] }}
+      #     azureArmConnection: $(lib-var-az-acr-connection)
+      #     acrRegistryName: $(registry-acr-name)
+      #     imageName: $(image-name)
+      #     imageTag: $(image-tag)
 
 # --- Stage: Asset Pipeline ---
 
-- stage: AssetPipeline
-  displayName: 'Asset pipeline'
-  jobs:
-    - job: build_and_publish
-      steps:
-        - script: |
-            npm install
-            npm run compile-sass
-          displayName: 'Compile Sass to CSS'
+# - stage: AssetPipeline
+#   displayName: 'Asset pipeline'
+#   jobs:
+#     - job: build_and_publish
+#       steps:
+#         - script: |
+#             npm install
+#             npm run compile-sass
+#           displayName: 'Compile Sass to CSS'
 
-        - task: AzureCLI@2
-          displayName: az storage blob upload-batch
-          inputs:
-            azureSubscription: $(lib-var-arm-connection)
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              az --version
-              az storage blob upload-batch \
-                --account-name $(storage-account-name) \
-                --source ./assets \
-                --destination $(storage-container-dev)
+#         - task: AzureCLI@2
+#           displayName: az storage blob upload-batch
+#           inputs:
+#             azureSubscription: $(lib-var-arm-connection)
+#             scriptType: bash
+#             scriptLocation: inlineScript
+#             inlineScript: |
+#               az --version
+#               az storage blob upload-batch \
+#                 --account-name $(storage-account-name) \
+#                 --source ./assets \
+#                 --destination $(storage-container-dev)
 
 # --- Stage: deploy to Azure App Services ---
 
-- stage: DeployImage
-  displayName: Deploy
-  jobs:
+# - stage: DeployImage
+#   displayName: Deploy
+#   jobs:
 
-  - job: deploy_master
-    displayName: 'Deploy (master)'
-    condition: ${{ variables['is-dev'] }}
-    steps:
-      - template: steps/deploy-app-service.yml@templates
-        parameters:
-          ARMConnectionName: $(lib-var-arm-connection)
-          dockerImage: $(image-name-with-registry):$(image-tag)
-          appName: $(app-services-name)-dev # with `-dev` suffix
+#   - job: deploy_master
+#     displayName: 'Deploy (master)'
+#     condition: ${{ variables['is-dev'] }}
+#     steps:
+#       - template: steps/deploy-app-service.yml@templates
+#         parameters:
+#           ARMConnectionName: $(lib-var-arm-connection)
+#           dockerImage: $(image-name-with-registry):$(image-tag)
+#           appName: $(app-services-name)-dev # with `-dev` suffix
 
-  - job: deploy_release
-    displayName: 'Deploy (release)'
-    condition: ${{ variables['is-release'] }}
-    steps:
-      - template: steps/set-custom-variable.yml@templates
-        parameters:
-          variableName: image-tag
-          command: 'npm run --silent my-version'
+#   - job: deploy_release
+#     displayName: 'Deploy (release)'
+#     condition: ${{ variables['is-release'] }}
+#     steps:
+#       - template: steps/set-custom-variable.yml@templates
+#         parameters:
+#           variableName: image-tag
+#           command: 'npm run --silent my-version'
 
-      - template: steps/deploy-app-service.yml@templates
-        parameters:
-          ARMConnectionName: $(lib-var-arm-connection)
-          dockerImage: $(image-name-with-registry):$(image-tag)
-          appName: $(app-services-name)
+#       - template: steps/deploy-app-service.yml@templates
+#         parameters:
+#           ARMConnectionName: $(lib-var-arm-connection)
+#           dockerImage: $(image-name-with-registry):$(image-tag)
+#           appName: $(app-services-name)
