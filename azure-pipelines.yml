@@ -45,6 +45,9 @@ variables:
     value: azure-nodejs-demo
 
   - name: app-services-name
+    value: azure-nodejs-demo-dev
+
+  - name: app-services-name-prod
     value: azure-nodejs-demo
 
   - name: image-name
@@ -85,7 +88,7 @@ stages:
 # --- Stage: Tests ---
 
 - stage: Tests
-  displayName: 'Test (Node.js)'
+  displayName: 'CI'
   condition: false
   jobs:
     - job: Audit
@@ -120,147 +123,81 @@ stages:
 
 - stage: BuildAndDeploy
   displayName: 'Build and Deploy'
-  condition: true
+  condition: ${{ variables['is-debug'] }} # is-deployment later
   jobs:
   - job: build_and_deploy
     steps:
-      # -- part 1: set Variables depending if dev or prod
+
+      # 1) SET VARIABLES
       - script: |
           echo '[default] image tag: $(image-tag)'
           echo '[default] storage account: $(storage-container)'
-        displayName: 'Debug: default variables'
+        displayName: 'Debug: default values'
 
       # blob storage container name
       - script: |
           echo "##vso[task.setvariable variable=storage-container]${{ variables['storage-container-prod'] }}"
-        displayName: 'Use prod container'
-        condition: ${{ variables['is-debug'] }}
+        displayName: 'Use prod container?'
+        condition: ${{ variables['is-release'] }}
 
       # docker image tag
       - script: |
           echo "##vso[task.setvariable variable=image-tag]$(npm run --silent my-version)"
-        displayName: 'Use prod image tag'
-        condition: ${{ variables['is-debug'] }}
+        displayName: 'Use prod image tag?'
+        condition: ${{ variables['is-release'] }}
 
+      # app service name
+      - script: |
+          echo "##vso[task.setvariable variable=app-services-name]${{ variables['app-services-name-prod'] }}"
+        displayName: 'Use app service name?'
+        condition: ${{ variables['is-release'] }}
+
+      # sanity check
       - script: |
           echo '[run-time] image tag: $(image-tag)'
           echo '[run-time] storage account: $(storage-container)'
-        displayName: 'Debug: pipeline run-time variables'
+        displayName: 'Debug: run-time values'
 
-      # -- part 2: build --
-
+      # 2) COMPILED SASS
       - script: |
           npm install
           npm run compile-sass
         displayName: 'Compile Sass to CSS'
 
+      # 3) BUILD AND PUSH DOCKER IMAGE
+      - template: steps/docker-build-push.yml@templates
+        parameters:
+          registryConnectionName: $(registry-service-connection)
+          imageName: $(image-name)
+          tagsAsMultilineString: |
+            $(image-tag)
 
+      # 4) LOCK CONTAINER IMAGE (PROD)
+      - template: steps/lock-acr-image.yml@templates
+        parameters:
+          condition: ${{ variables['is-release'] }}
+          azureArmConnection: $(lib-var-az-acr-connection)
+          acrRegistryName: $(registry-acr-name)
+          imageName: $(image-name)
+          imageTag: $(image-tag)
 
-#       - template: steps/docker-build-push.yml@templates
-#         parameters:
-#           registryConnectionName: $(registry-service-connection)
-#           imageName: $(image-name)
-#           tagsAsMultilineString: |
-#             $(image-tag)
+      # 5) UPLOAD ASSETS TO BLOB STORAGE
+      - task: AzureCLI@2
+        displayName: az storage blob upload-batch
+        inputs:
+          azureSubscription: $(lib-var-arm-connection)
+          scriptType: bash
+          scriptLocation: inlineScript
+          inlineScript: |
+            az --version
+            az storage blob upload-batch \
+              --account-name $(storage-account-name) \
+              --source ./assets \
+              --destination $(storage-container)
 
-
-#       - task: AzureCLI@2
-#         displayName: az storage blob upload-batch
-#         inputs:
-#           azureSubscription: $(lib-var-arm-connection)
-#           scriptType: bash
-#           scriptLocation: inlineScript
-#           inlineScript: |
-#             az --version
-#             az storage blob upload-batch \
-#               --account-name $(storage-account-name) \
-#               --source ./assets \
-#               --destination $(storage-container-dev)
-
-
-
-
-
-
-
-
-
-
-
-#       steps:
-#       - template: steps/set-custom-variable.yml@templates
-#         parameters:
-#           condition: ${{ variables['is-release'] }}
-#           variableName: image-tag
-#           command: 'npm run --silent my-version'
-
-#       - template: steps/docker-build-push.yml@templates
-#         parameters:
-#           registryConnectionName: $(registry-service-connection)
-#           imageName: $(image-name)
-#           tagsAsMultilineString: |
-#             $(image-tag)
-
-#       - template: steps/lock-acr-image.yml@templates
-#         parameters:
-#           condition: ${{ variables['is-release'] }}
-#           azureArmConnection: $(lib-var-az-acr-connection)
-#           acrRegistryName: $(registry-acr-name)
-#           imageName: $(image-name)
-#           imageTag: $(image-tag)
-
-# # --- Stage: Asset Pipeline ---
-
-# # - stage: AssetPipeline
-# #   displayName: 'Asset pipeline'
-#   jobs:
-#     - job: build_and_publish
-#       steps:
-#         - script: |
-#             npm install
-#             npm run compile-sass
-#           displayName: 'Compile Sass to CSS'
-
-#         - task: AzureCLI@2
-#           displayName: az storage blob upload-batch
-#           inputs:
-#             azureSubscription: $(lib-var-arm-connection)
-#             scriptType: bash
-#             scriptLocation: inlineScript
-#             inlineScript: |
-#               az --version
-#               az storage blob upload-batch \
-#                 --account-name $(storage-account-name) \
-#                 --source ./assets \
-#                 --destination $(storage-container-dev)
-
-# # --- Stage: deploy to Azure App Services ---
-
-# # - stage: DeployImage
-# #   displayName: Deploy
-# #   jobs:
-
-# #   - job: deploy_master
-# #     displayName: 'Deploy (master)'
-# #     condition: ${{ variables['is-dev'] }}
-# #     steps:
-# #       - template: steps/deploy-app-service.yml@templates
-# #         parameters:
-# #           ARMConnectionName: $(lib-var-arm-connection)
-# #           dockerImage: $(image-name-with-registry):$(image-tag)
-# #           appName: $(app-services-name)-dev # with `-dev` suffix
-
-# #   - job: deploy_release
-# #     displayName: 'Deploy (release)'
-# #     condition: ${{ variables['is-release'] }}
-# #     steps:
-# #       - template: steps/set-custom-variable.yml@templates
-# #         parameters:
-# #           variableName: image-tag
-# #           command: 'npm run --silent my-version'
-
-# #       - template: steps/deploy-app-service.yml@templates
-# #         parameters:
-# #           ARMConnectionName: $(lib-var-arm-connection)
-# #           dockerImage: $(image-name-with-registry):$(image-tag)
-# #           appName: $(app-services-name)
+      # 6) DEPLOY TO APP SERVICES
+      - template: steps/deploy-app-service.yml@templates
+        parameters:
+          ARMConnectionName: $(lib-var-arm-connection)
+          dockerImage: $(image-name-with-registry):$(image-tag)
+          appName: $(app-services-name)
