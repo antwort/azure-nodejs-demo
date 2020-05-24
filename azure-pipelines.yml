@@ -122,7 +122,7 @@ stages:
   displayName: 'Build and Deploy'
   condition: true
   jobs:
-  - job: set_vars
+  - job: setEnv
     steps:
       # Set Variables depending if dev or prod
       - script: |
@@ -160,8 +160,8 @@ stages:
 
 
 
-  - job: build_and_publish
-    dependsOn: set_vars
+  - job: BuildAndPublish
+    dependsOn: setEnv
     steps:
       - script: |
           echo '[run-time] image tag: $(image-tag)'
