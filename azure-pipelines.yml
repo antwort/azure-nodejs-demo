@@ -148,7 +148,7 @@ stages:
           displayName: az storage blob upload-batch
           inputs:
             azureSubscription: $(lib-var-arm-connection)
-            scriptType: shell
+            scriptType: bash
             scriptLocation: inlineScript
             inlineScript: |
               az --version
