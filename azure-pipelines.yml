@@ -139,7 +139,9 @@ stages:
   jobs:
     - job: build_and_publish
       steps:
-        - script: npm run compile-sass
+        - script: |
+            npm install
+            npm run compile-sass
           displayName: 'Compile Sass to CSS'
 
         - task: AzureFileCopy@4
