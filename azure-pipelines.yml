@@ -63,7 +63,7 @@ variables:
     value: 'nodejs-dev'
 
   - name: storage-container
-    value: 'nodejs'
+    value: 'nodejs' # default
 
   - name: is-dev
     value: ${{ eq(variables['Build.SourceBranch'], 'refs/heads/master') }}
@@ -114,11 +114,60 @@ stages:
 
 # --- Stage: Build and Push Docker image ---
 
-# - stage: BuildAndDeploy
-#   displayName: 'Build and Deploy'
-#   jobs:
-#     - job: build_and_push
-#       displayName: 'Build and Push Image'
+- stage: BuildAndDeploy
+  displayName: 'Build and Deploy'
+  jobs:
+  - job: build_and_publish
+    steps:
+      - script: |
+          npm install
+          npm run compile-sass
+        displayName: 'Compile Sass to CSS'
+
+      - script: echo '##vso[task.setvariable variable=storage-container]'$(${{ variables['storage-container-dev'] }})''
+        displayName: 'Use Dev storage-container?'
+        # condition: ${{ variables['is-dev'] }}
+
+      - script: echo $(storage-container)
+
+      # - template: steps/set-custom-variable.yml@templates
+      #   parameters:
+      #     condition: ${{ variables['is-release'] }}
+      #     variableName: image-tag
+      #     command: 'npm run --silent my-version'
+
+
+
+#       - template: steps/docker-build-push.yml@templates
+#         parameters:
+#           registryConnectionName: $(registry-service-connection)
+#           imageName: $(image-name)
+#           tagsAsMultilineString: |
+#             $(image-tag)
+
+
+#       - task: AzureCLI@2
+#         displayName: az storage blob upload-batch
+#         inputs:
+#           azureSubscription: $(lib-var-arm-connection)
+#           scriptType: bash
+#           scriptLocation: inlineScript
+#           inlineScript: |
+#             az --version
+#             az storage blob upload-batch \
+#               --account-name $(storage-account-name) \
+#               --source ./assets \
+#               --destination $(storage-container-dev)
+
+
+
+
+
+
+
+
+
+
 
 #       steps:
 #       - template: steps/set-custom-variable.yml@templates
@@ -144,8 +193,8 @@ stages:
 
 # # --- Stage: Asset Pipeline ---
 
-# - stage: AssetPipeline
-#   displayName: 'Asset pipeline'
+# # - stage: AssetPipeline
+# #   displayName: 'Asset pipeline'
 #   jobs:
 #     - job: build_and_publish
 #       steps:
@@ -169,31 +218,31 @@ stages:
 
 # # --- Stage: deploy to Azure App Services ---
 
-# - stage: DeployImage
-#   displayName: Deploy
-#   jobs:
+# # - stage: DeployImage
+# #   displayName: Deploy
+# #   jobs:
 
-#   - job: deploy_master
-#     displayName: 'Deploy (master)'
-#     condition: ${{ variables['is-dev'] }}
-#     steps:
-#       - template: steps/deploy-app-service.yml@templates
-#         parameters:
-#           ARMConnectionName: $(lib-var-arm-connection)
-#           dockerImage: $(image-name-with-registry):$(image-tag)
-#           appName: $(app-services-name)-dev # with `-dev` suffix
+# #   - job: deploy_master
+# #     displayName: 'Deploy (master)'
+# #     condition: ${{ variables['is-dev'] }}
+# #     steps:
+# #       - template: steps/deploy-app-service.yml@templates
+# #         parameters:
+# #           ARMConnectionName: $(lib-var-arm-connection)
+# #           dockerImage: $(image-name-with-registry):$(image-tag)
+# #           appName: $(app-services-name)-dev # with `-dev` suffix
 
-#   - job: deploy_release
-#     displayName: 'Deploy (release)'
-#     condition: ${{ variables['is-release'] }}
-#     steps:
-#       - template: steps/set-custom-variable.yml@templates
-#         parameters:
-#           variableName: image-tag
-#           command: 'npm run --silent my-version'
+# #   - job: deploy_release
+# #     displayName: 'Deploy (release)'
+# #     condition: ${{ variables['is-release'] }}
+# #     steps:
+# #       - template: steps/set-custom-variable.yml@templates
+# #         parameters:
+# #           variableName: image-tag
+# #           command: 'npm run --silent my-version'
 
-#       - template: steps/deploy-app-service.yml@templates
-#         parameters:
-#           ARMConnectionName: $(lib-var-arm-connection)
-#           dockerImage: $(image-name-with-registry):$(image-tag)
-#           appName: $(app-services-name)
+# #       - template: steps/deploy-app-service.yml@templates
+# #         parameters:
+# #           ARMConnectionName: $(lib-var-arm-connection)
+# #           dockerImage: $(image-name-with-registry):$(image-tag)
+# #           appName: $(app-services-name)
