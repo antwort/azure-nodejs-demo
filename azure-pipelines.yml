@@ -122,9 +122,9 @@ stages:
   displayName: 'Build and Deploy'
   condition: true
   jobs:
-  - job: setEnv
+  - job: build_and_deploy
     steps:
-      # Set Variables depending if dev or prod
+      # -- part 1: set Variables depending if dev or prod
       - script: |
           echo '[default] image tag: $(image-tag)'
           echo '[default] storage account: $(storage-container)'
@@ -132,41 +132,22 @@ stages:
 
       # blob storage container name
       - script: |
-          echo "##vso[task.setvariable variable=storage-container;isOutput=true]${{ variables['storage-container-prod'] }}"
+          echo "##vso[task.setvariable variable=storage-container]${{ variables['storage-container-prod'] }}"
         displayName: 'Use prod container'
         condition: ${{ variables['is-debug'] }}
 
-      # - script: |
-      #     echo 'variable storage-container is set to $(storage-container)'
-      #   displayName: 'Which container?'
-
       # docker image tag
       - script: |
-          echo "##vso[task.setvariable variable=image-tag;isOutput=true]$(npm run --silent my-version)"
+          echo "##vso[task.setvariable variable=image-tag]$(npm run --silent my-version)"
         displayName: 'Use prod image tag'
         condition: ${{ variables['is-debug'] }}
 
-
-      # - template: steps/set-custom-variable.yml@templates
-      #   parameters:
-      #     condition: ${{ variables['is-release'] }}
-      #     variableName: image-tag
-      #     command: 'npm run --silent my-version'
-
       - script: |
           echo '[run-time] image tag: $(image-tag)'
           echo '[run-time] storage account: $(storage-container)'
         displayName: 'Debug: pipeline run-time variables'
 
-
-
-  - job: BuildAndPublish
-    dependsOn: setEnv
-    steps:
-      - script: |
-          echo '[run-time] image tag: $(image-tag)'
-          echo '[run-time] storage account: $(storage-container)'
-        displayName: 'Debug: pipeline run-time variables'
+      # -- part 2: build --
 
       - script: |
           npm install
